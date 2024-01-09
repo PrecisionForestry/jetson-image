@@ -73,7 +73,8 @@ RUN apt install -y \
         e2fsprogs \
         mtd-utils \
         python-is-python3 \
-        git
+        git \
+        avahi-utils
 
 # Resize the rootfs
 COPY scripts/resizerootfs.sh /usr/local/bin
@@ -95,3 +96,6 @@ RUN useradd \
         -p $(openssl passwd -6 jetson) \
         -s /bin/bash \
         jetson
+
+ARG HOSTNAME=default
+RUN echo "$HOSTNAME" > /etc/hostname

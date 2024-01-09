@@ -11,6 +11,12 @@ if [ "$1" != "22.04" ] && [ "$1" != "20.04" ]; then
     exit 1
 fi
 
+HOSTNAME=default
+
+if [ "$2" != "" ]; then
+    HOSTNAME="$2"
+fi
+
 if [ "$1" == "20.04" ]; then
     podman build \
         --squash-all \
@@ -24,7 +30,8 @@ elif [ "$1" == "22.04" ]; then
         --jobs=4 \
         --arch=arm64 \
         -f Containerfile.rootfs.22_04 \
-        -t jetson-rootfs
+        -t jetson-rootfs \
+        --build-arg=HOSTNAME="$HOSTNAME"
 else
     exit 1
 fi
