@@ -5,6 +5,12 @@ LABEL org.opencontainers.image.authors="Badr @pythops"
 # Define the BSP version
 ARG BSP=https://developer.download.nvidia.com/embedded/L4T/r32_Release_v7.4/T210/Jetson-210_Linux_R32.7.4_aarch64.tbz2
 
+# Define Tegra kernel to build
+ARG TEGRA=tegra-l4t-r32.7.4
+
+# Define cross sompilation toolchain
+ARG TOOLCHAIN="https://releases.linaro.org/components/toolchain/binaries/latest-7/aarch64-linux-gnu/gcc-linaro-7.5.0-2019.12-x86_64_aarch64-linux-gnu.tar.xz"
+
 # Install different dependencies
 RUN apt update && \
     apt install -y \
@@ -17,11 +23,59 @@ RUN apt update && \
         python3 \
         gdisk \
         kpartx \
-        cpio
+        cpio \
+        git \
+        build-essential \
+        bc \
+        xxd
 
 # Extract the BSP
 RUN mkdir /build && \
     wget -qO- $BSP | tar -jxpf - -C /build
+
+# Export variables
+ENV CROSS_COMPILE=/toolchain/bin/aarch64-linux-gnu-
+ENV TEGRA_KERNEL_OUT=/kernel_compiled
+ENV LOCALVERSION=-tegra
+
+# Create folder for compiled kernel
+RUN mkdir $TEGRA_KERNEL_OUT
+
+# Download kernel sources
+RUN /build/Linux_for_Tegra/source_sync.sh -t $TEGRA
+
+# Copy patches
+COPY patches /patches
+
+# Patch defconfig to include PPS clients
+RUN patch /build/Linux_for_Tegra/sources/kernel/kernel-4.9/arch/arm64/configs/tegra_defconfig < /patches/tegra_defconfig.diff
+
+# Fix space definition
+RUN patch /build/Linux_for_Tegra/sources/kernel/kernel-4.9/scripts/Kbuild.include < /patches/Kbuild.include.diff
+
+# Patch dts to include PPS
+RUN patch /build/Linux_for_Tegra/sources/hardware/nvidia/soc/t210/kernel-dts/tegra210-soc/tegra210-soc-base.dtsi < /patches/tegra210-soc-base.dtsi.diff
+
+# Download cross compilation toolchain
+RUN wget $TOOLCHAIN -O toolchain.tar.xz && \
+    mkdir /toolchain && \
+    tar xf toolchain.tar.xz -C /toolchain --strip-components 1 && \
+    rm -rf toolchain.tar.xz
+
+WORKDIR /build/Linux_for_Tegra/sources/kernel/kernel-4.9
+
+# Make the kernel config
+RUN make ARCH=arm64 O=$TEGRA_KERNEL_OUT tegra_defconfig
+
+# Compile the kernel
+RUN make CROSS_COMPILE=$CROSS_COMPILE ARCH=arm64 O=$TEGRA_KERNEL_OUT -j8
+ 
+# Remove the toolchain
+RUN rm -rf /toolchain
+
+# Copy output files so that they get flashed on the image
+RUN cp $TEGRA_KERNEL_OUT/arch/arm64/boot/Image /build/Linux_for_Tegra/kernel/Image
+RUN cp -a $TEGRA_KERNEL_OUT/arch/arm64/boot/dts/. /build/Linux_for_Tegra/kernel/dtb/.
 
 # Copy the ubuntu rootfs
 COPY rootfs/ /build/Linux_for_Tegra/rootfs/
@@ -30,7 +84,6 @@ COPY rootfs/ /build/Linux_for_Tegra/rootfs/
 RUN chmod 4755 /build/Linux_for_Tegra/rootfs/usr/bin/sudo
 
 # Different patches
-COPY patches /patches
 RUN patch /build/Linux_for_Tegra/nv_tegra/nv-apply-debs.sh < /patches/nv-apply-debs.diff && \
     patch /build/Linux_for_Tegra/tools/jetson-disk-image-creator.sh < /patches/jetson-disk-image-creator.diff
 

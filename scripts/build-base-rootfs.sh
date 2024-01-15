@@ -23,7 +23,8 @@ if [ "$1" == "20.04" ]; then
         --jobs=4 \
         --arch=arm64 \
         -f Containerfile.rootfs.20_04 \
-        -t jetson-rootfs
+        -t jetson-rootfs \
+        --build-arg=HOSTNAME="$HOSTNAME"
 elif [ "$1" == "22.04" ]; then
     podman build \
         --squash-all \

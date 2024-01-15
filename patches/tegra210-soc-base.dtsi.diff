@@ -1,0 +1,9 @@
+2576a2577,2584
+> 
+> 	pps {
+>     	gpios = <&gpio TEGRA_GPIO(B, 7) 0>;
+> 
+>     	compatible = "pps-gpio";
+>    		status = "okay";
+> 	};
+> 

@@ -1,0 +1,6 @@
+464,465c464,465
+< the-space :=
+< the-space += 
+---
+> E =
+> the-space = $E $E

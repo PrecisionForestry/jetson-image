@@ -68,7 +68,9 @@ RUN apt install -y \
         parted \
         gdisk \
         e2fsprogs \
-        mtd-utils
+        mtd-utils \
+        avahi-utils
+
 
 # Resize the rootfs
 COPY scripts/resizerootfs.sh /usr/local/bin
@@ -90,3 +92,6 @@ RUN useradd \
         -p $(openssl passwd -6 jetson) \
         -s /bin/bash \
         jetson
+
+ARG HOSTNAME=default
+RUN echo "$HOSTNAME" > /etc/hostname
