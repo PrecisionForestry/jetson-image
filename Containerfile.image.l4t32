@@ -92,6 +92,7 @@ RUN rm -rf /build/Linux_for_Tegra/tools/python-jetson-gpio_*_arm64.deb
 
 # Install nvidia packages in the new rootfs
 WORKDIR /build/Linux_for_Tegra/
+
 RUN ./apply_binaries.sh
 
 # Fix permissions
@@ -110,5 +111,8 @@ RUN gzip new_initrd && mv new_initrd.gz /build/Linux_for_Tegra/bootloader/l4t_in
 
 # Copy the script to create the image
 COPY scripts/create-jetson-image.sh /usr/local/bin/
+
+# For some reason this gets owerwritten so let's re-copy it
+COPY /rootfs/etc/hostname /build/Linux_for_Tegra/rootfs/etc/hostname
 
 WORKDIR /build/Linux_for_Tegra/tools
